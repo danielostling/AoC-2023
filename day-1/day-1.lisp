@@ -4,18 +4,26 @@
 
 (defun read-input (path)
   "Read and return puzzle input."
-  (declare (ignorable path))
-  )
+  (uiop:read-file-lines path))
 
 (defun parse-input (input)
   "Parse input into solution-friendly format."
-  (declare (ignorable input))
-  )
+  input)
 
 (defun solve-part-1 (input)
   "Solve part 1 of puzzle."
-  (declare (ignorable input))
-  )
+  (let* ((just-numbers (loop for line in input
+                             collect (loop for c across line
+                                           when (digit-char-p c)
+                                             collect (digit-char-p c))))
+         (number-pairs (loop for number-list in just-numbers
+                             when number-list
+                               collect (list
+                                        (first number-list)
+                                        (first (last number-list))))))
+    (loop for number-pair in number-pairs
+          sum (+ (* 10 (nth 0 number-pair)) (nth 1 number-pair)))))
+
 
 (defun solve-part-2 (input)
   "Solve part 2 of puzzle."
