@@ -10,6 +10,10 @@
   "Parse input into solution-friendly format."
   input)
 
+(defun alist-v (key alist)
+  "Return value for key in alist or nil if key is missing."
+  (cdr (assoc key alist :test 'equal)))
+
 (defun solve-part-1 (input)
   "Solve part 1 of puzzle."
   (let* ((just-numbers (loop for line in input
@@ -27,7 +31,9 @@
 
 (defun solve-part-2 (input)
   "Solve part 2 of puzzle."
-  (declare (ignorable input))
+  (let* ((number-map '(("one" . 1) ("two" . 2) ("three" . 3)
+                       ("four" . 4) ("five" . 5) ("six" . 6)
+                       ("seven" . 7) ("eight" . 8) ("nine" . 9)))))
   )
 
 (defun main (&optional (mode :full))
