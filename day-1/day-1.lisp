@@ -10,9 +10,12 @@
   "Parse input into solution-friendly format."
   input)
 
-(defun alist-v (key alist)
-  "Return value for key in alist or nil if key is missing."
-  (cdr (assoc key alist :test 'equal)))
+(defun replace-number-string (line numbers)
+  "Replace spelled-out numbers for digit in given string per numbers alist."
+  (let ((new-line (copy-seq line)))
+    (dolist (pair numbers)
+      (setf new-line (cl-ppcre:regex-replace-all (car pair) new-line (cdr pair))))
+    new-line))
 
 (defun solve-part-1 (input)
   "Solve part 1 of puzzle."
@@ -28,13 +31,13 @@
     (loop for number-pair in number-pairs
           sum (+ (* 10 (nth 0 number-pair)) (nth 1 number-pair)))))
 
-
 (defun solve-part-2 (input)
   "Solve part 2 of puzzle."
-  (let* ((number-map '(("one" . 1) ("two" . 2) ("three" . 3)
-                       ("four" . 4) ("five" . 5) ("six" . 6)
-                       ("seven" . 7) ("eight" . 8) ("nine" . 9)))))
-  )
+  (let ((numbers '(("one" . "o1e") ("two" . "t2o") ("three" . "t3e")
+                   ("four" . "f4r") ("five" . "f5e") ("six" . "s6x")
+                   ("seven" . "s7n") ("eight" . "e8t") ("nine" . "n9e"))))
+    (solve-part-1 (loop for line in input
+                        collecting (replace-number-string line numbers)))))
 
 (defun main (&optional (mode :full))
   "AoC 2023 day 1 solutions.
