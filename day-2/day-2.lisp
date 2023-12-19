@@ -6,7 +6,6 @@
   "Read and return puzzle input."
   (uiop:read-file-lines path))
 
-
 (defun alist-v (key alist &optional (default 0))
   "Return value from alist at key or a default value."
   (let ((pair (assoc key alist)))
@@ -28,7 +27,6 @@
                                (lambda (s) (string-trim " " s))
                                (uiop:split-string turn-string :separator '(#\,)))))
       (mapcar #'split-and-flip draw-color-strings))))
-
 
 (defun parse-line (line)
   "Convert a line like this
