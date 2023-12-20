@@ -30,12 +30,22 @@
 
 (defun solve-part-1 (input)
   "Solve part 1 of puzzle."
+  (let* ((dims (array-dimensions input))
+         (rows (first dims))
+         (cols (second dims)))
+    (loop :for row :from 1 :below (1- rows)
+          :do (progn
+                (loop :for col :from 1 :below (1- cols)
+                      :do (format t "~a " (aref input row col)))
+                (format t "~%"))
+    )
   
+    )
   )
 
 (defun solve-part-2 (input)
   "Solve part 2 of puzzle."
-  )
+  1)
 
 (defun main (&optional (mode :full))
   "AoC 2023 day 2 solutions.
