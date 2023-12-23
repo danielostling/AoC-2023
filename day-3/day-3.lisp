@@ -76,6 +76,17 @@
                 (unless (frame-dot-p (2d-subarray (1- row) (1- hit-start) (1+ row) hit-stop schematic))
                   (push (parse-integer (subseq row-as-string hit-start hit-stop)) part-numbers))))))
 
+(defun find-gears (schematic)
+  "Given a schematic, return list of (x y) coordinates for each gear."
+  (let ((rows (array-dimension schematic 0))
+        (cols (array-dimension schematic 1))
+        (gears ()))
+    (loop :for row :from 0 :below rows
+          :do (loop :for col :from 0 :below cols
+                    :when (char= #\* (aref schematic row col))
+                      :do (push (cons row col) gears)))
+    gears))
+
 (defun solve-part-1 (schematic)
   "Solve part 1 of puzzle."
   (let ((rows (array-dimension schematic 0)))
