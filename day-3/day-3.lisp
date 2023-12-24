@@ -28,13 +28,17 @@
      `(,rows ,cols)
      :initial-contents (mapcar (lambda (line) (coerce line 'list)) new-lines))))
 
-(defun 2d-subarray (row-1 col-1 row-2 col-2 arr)
+(defun 2d-subarray (arr top-left bottom-right)
   "Return a copied portion of given 2d array arr delimited by
        top-left point: row-1, col-1
    bottom-right point: row-2, col-2
 
    Note: There is no bounds checking. Rows and columns outside arr will cause exceptions."
-  (let* ((new-rows (1+ (- row-2 row-1)))
+  (let* ((row-1 (first top-left))
+         (row-2 (first bottom-right))
+         (col-1 (second top-left))
+         (col-2 (second bottom-right))
+         (new-rows (1+ (- row-2 row-1)))
          (new-cols (1+ (- col-2 col-1)))
          (new-arr (make-array `(,new-rows ,new-cols)
                               :element-type 'character)))
@@ -58,14 +62,19 @@
        (every #'dot-p (loop :for row :from 0 :below rows :collect (aref arr row 0)))
        (every #'dot-p (loop :for row :from 0 :below rows :collect (aref arr row (1- cols))))))))
 
-(defun machine-parts (row schematic)
-  "Return all non-machine parts in given row in given schematic."
+(defun find-row-machine-parts (row schematic)
+  "Return machine parts in given row in given schematic.
+   Returned value is a list of machine parts and bounding frame coordinates, where each element is
+   (machine-part-number top-left bottom-right)
+   where top-left and bottom-right are (row col) coordinates."
   (let* ((cols-in-schematic (array-dimension schematic 1))
          (row-vector (make-array cols-in-schematic
                                  :displaced-to schematic
                                  :displaced-index-offset (* row cols-in-schematic)))
          (row-as-string (coerce row-vector 'string))
          (scan-start 0)
+         (bounding-box ())
+         (bounding-box-coordinates ())
          (part-numbers ()))
     (loop named parts
           :do (multiple-value-bind (hit-start hit-stop)
@@ -73,8 +82,22 @@
                 (when (null hit-start)
                   (return-from parts part-numbers))
                 (setf scan-start hit-stop)
-                (unless (frame-dot-p (2d-subarray (1- row) (1- hit-start) (1+ row) hit-stop schematic))
-                  (push (parse-integer (subseq row-as-string hit-start hit-stop)) part-numbers))))))
+                (setf bounding-box-coordinates (list
+                                                (list (1- row) (1- hit-start))
+                                                (list (1+ row) hit-stop)))
+                (setf bounding-box (2d-subarray schematic
+                                                (first bounding-box-coordinates)
+                                                (second bounding-box-coordinates)))
+                (unless (frame-dot-p bounding-box)
+                  (push (list (parse-integer (subseq row-as-string hit-start hit-stop))
+                              bounding-box-coordinates)
+                        part-numbers))))))
+
+(defun find-machine-parts (schematic)
+  "Return machine parts in schematic as list of (machine-part-id (bounding-box-coordinates))."
+    (let ((rows (array-dimension schematic 0)))
+      (loop :for row :from 1 :below (1- rows)
+            :when (find-row-machine-parts row schematic) :nconcing it)))
 
 (defun find-gears (schematic)
   "Given a schematic, return list of (x y) coordinates for each gear."
@@ -87,15 +110,37 @@
                       :do (push (cons row col) gears)))
     gears))
 
+(defun point-in-box-p (top-left bottom-right point)
+  "Return T if point (row-p col-p) is inside box
+  top-left (row-1 col-1) by bottom-right (row-2 col-2), else nil."
+  (and (>= (car point) (first top-left))
+       (<= (car point) (first bottom-right))
+       (>= (cdr point) (second top-left))
+       (<= (cdr point) (second bottom-right))))
+
 (defun solve-part-1 (schematic)
   "Solve part 1 of puzzle."
-  (let ((rows (array-dimension schematic 0)))
-    (reduce #'+ (loop :for row :from 1 :below (1- rows)
-                      :when (machine-parts row schematic) :nconcing it))))
+  (flet ((just-machine-parts (machine-parts)
+           "Extract machine parts only from machine-parts data structure"
+           (loop :for machine-part :in machine-parts :collect (car machine-part))))
+    (loop :for machine-part :in (just-machine-parts (find-machine-parts schematic))
+            :summing machine-part)))
 
 (defun solve-part-2 (schematic)
   "Solve part 2 of puzzle."
-  1)
+  (let* ((gears (find-gears schematic))
+         (machine-parts (find-machine-parts schematic))
+         (connected-machine-parts ()))
+    (format t "gears: ~a~%" gears)
+    (loop :for gear :in gears
+          :do (loop :for machine-part :in machine-parts
+                    :when (point-in-box-p
+                           (caadr machine-part)
+                           (cadadr machine-part)
+                           gear)
+                      :do (push (list gear (car machine-part)) connected-machine-parts))
+          )
+    connected-machine-parts))
 
 (defun main (&optional (mode :full))
   "AoC 2023 day 2 solutions.
