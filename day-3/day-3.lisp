@@ -151,7 +151,7 @@
             :sum (gear-ratio parts))))
 
 (defun main (&optional (mode :full))
-  "AoC 2023 day 2 solutions.
+  "AoC 2023 day 3 solutions.
    Mode is one of
    :full - use full puzzle input
    :test - use test puzzle input"
