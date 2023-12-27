@@ -13,6 +13,13 @@
         (cdr pair)
         default)))
 
+(defun extend-hash-value-list (hash key value)
+  "Add value to list referencef by key in hash.
+   If key is missing, initiate a new list with value as element.
+   Modifies given hash. NB There must be a better way to do this."
+  (let ((current-value (gethash key hash ())))
+    (setf (gethash key hash) (push value current-value))))
+
 (defun parse-input (lines)
   "Parse input lines into solution-friendly format.
    Return a schematic array with a dot (.) border added."
@@ -118,6 +125,10 @@
        (>= (cdr point) (second top-left))
        (<= (cdr point) (second bottom-right))))
 
+(defun gear-ratio (parts)
+  "Multiply given list of part numbers."
+  (reduce #'* parts))
+
 (defun solve-part-1 (schematic)
   "Solve part 1 of puzzle."
   (flet ((just-machine-parts (machine-parts)
@@ -130,17 +141,14 @@
   "Solve part 2 of puzzle."
   (let* ((gears (find-gears schematic))
          (machine-parts (find-machine-parts schematic))
-         (connected-machine-parts ()))
-    (format t "gears: ~a~%" gears)
+         (connected-machine-parts (make-hash-table :test #'equal)))
     (loop :for gear :in gears
           :do (loop :for machine-part :in machine-parts
-                    :when (point-in-box-p
-                           (caadr machine-part)
-                           (cadadr machine-part)
-                           gear)
-                      :do (push (list gear (car machine-part)) connected-machine-parts))
-          )
-    connected-machine-parts))
+                    :when (point-in-box-p (caadr machine-part) (cadadr machine-part) gear)
+                      :do (extend-hash-value-list connected-machine-parts gear (car machine-part))))
+    (loop :for parts :being :the :hash-value :of connected-machine-parts
+          :when (equal 2 (length parts))
+            :sum (gear-ratio parts))))
 
 (defun main (&optional (mode :full))
   "AoC 2023 day 2 solutions.
