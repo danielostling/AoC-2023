@@ -6,20 +6,6 @@
   "Read and return puzzle input."
   (uiop:read-file-lines path))
 
-(defun alist-v (key alist &optional (default 0))
-  "Return value from alist at key or a default value."
-  (let ((pair (assoc key alist)))
-    (if pair
-        (cdr pair)
-        default)))
-
-(defun extend-hash-value-list (hash key value)
-  "Add value to list referencef by key in hash.
-   If key is missing, initiate a new list with value as element.
-   Modifies given hash. NB There must be a better way to do this."
-  (let ((current-value (gethash key hash ())))
-    (setf (gethash key hash) (push value current-value))))
-
 (defun numbers-to-ints (number-string)
   "Convert string
    '83 86  6 31 17  9 48 53'
@@ -76,40 +62,6 @@
         :when (> (length winning-numbers-in-card) 0)
           :sum (ash 1 (1- (length winning-numbers-in-card)))))
 
-(defun solve-part-2-old (cards)
-  "Solve part 2 of puzzle."
-  (let* ((card-map (make-wins-per-card-map cards))
-         (won-cards (loop :for won-cards-per-card :being :the :hash-value :of card-map
-                          :when won-cards-per-card :collect won-cards-per-card))
-         (temp-cards ())
-         (list-remains t)
-         (limiter 6))
-    (loop
-      :while (and list-remains (> limiter 0))
-      :do (progn
-            (decf limiter)
-            (format t "won-cards is now ~a~%---------~%" won-cards)
-            (setf list-remains nil)
-            (setf temp-cards nil)
-            (loop :for card-list-or-item :in won-cards
-                  :if (listp card-list-or-item)
-                    :do (progn
-                          (setf list-remains t)
-                          (if (> (length card-list-or-item) 1)
-                              (progn
-                                (push (first card-list-or-item) temp-cards)
-                                (push (gethash (first card-list-or-item) card-map) temp-cards)
-                                (push (rest card-list-or-item) temp-cards))
-                              (push (first card-list-or-item) temp-cards)))
-                  :else :do (push card-list-or-item temp-cards))
-            (setf won-cards (reverse (copy-list temp-cards)))
-            )
-
-      )
-    (format t "Final: ~a~%" (sort (append (loop :for key :being :the :hash-key :of card-map :collect key) won-cards) #'<))
-    (+ (length cards) (length won-cards))))
-
-
 (defun solve-part-2 (cards)
   "Solve part 2 of puzzle."
   (let* ((card-map (make-wins-per-card-map cards))
@@ -122,23 +74,18 @@
       :do (progn
             (setf list-remains nil)
             (setf temp-cards nil)
-            (format t "won cards: ~a~%-------------~%" won-cards)
             (loop :for card-list-or-item :in won-cards
                   :if (listp card-list-or-item)
                     :do (progn
                           (setf list-remains t)
-                          (if (gethash (first card-list-or-item) card-map)
-                              (progn
-                                (push (first card-list-or-item) temp-cards)
-                                (push (gethash (first card-list-or-item) card-map) temp-cards)
-                                (when (rest card-list-or-item)
-                                  (push (rest card-list-or-item) temp-cards)))
-                              (push (first card-list-or-item) temp-cards)))
+                          (push (first card-list-or-item) temp-cards)
+                          (when (gethash (first card-list-or-item) card-map)
+                            (push (gethash (first card-list-or-item) card-map) temp-cards))
+                          (when (rest card-list-or-item)
+                            (push (rest card-list-or-item) temp-cards)))
                   :else :do (push card-list-or-item temp-cards))
             (setf won-cards (reverse (copy-list temp-cards)))))
     (+ (length cards) (length won-cards))))
-
-
 
 (defun main (&optional (mode :full))
   "AoC 2023 day 4 solutions.
