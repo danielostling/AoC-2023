@@ -92,18 +92,96 @@
         (first mapped-value)
         lookup-value)))
 
+(defun map-reverse-lookup (lookup-value mapping almanac)
+  "Lookup REVERSE value in almanac for given mapping.
+   A mapping is three integers (drs srs rl);
+   drs - destination range start
+   srs - source range start
+   rl - range length
+
+   If value is in range drs -> drs+rl, return corresponding mapping from srs -> srs+rl, same index.
+   If value is not in range drs -> drs+rl, return same value as given value."
+  (let ((mapped-value (loop :for (drs srs rl) :in (alist-v mapping almanac)
+                            :when (and (>= lookup-value drs) (< lookup-value (+ drs rl)))
+                              :collect (+ srs (- lookup-value drs)))))
+    (if mapped-value
+        (first mapped-value)
+        lookup-value)))
+
 (defun trace-seed-through-mappings (seed map-order almanac)
   "Given a seed and an almanac, trace seed to location using the mappings."
   (loop :for mapping :in map-order
         :for lookup-value = seed then (map-lookup lookup-value mapping almanac)
         :finally (return lookup-value)))
 
-(defun lowest-location-in-range (first-seed seed-range map-order almanac)
-  "Given a seed range and an almanac, trace seeds to locations using the mappings.
-   Return lowest location."
-  (let ((final-seed (1- (+ first-seed seed-range))))
-    (loop :for seed :from first-seed :to final-seed
-          :minimize (trace-seed-through-mappings seed map-order almanac))))
+(defun trace-location-through-mappings (location map-order almanac)
+  "Given a location and an almanac, trace location to seed using the mappings.
+   A mapped value can be either mapped from previous mappings in given almanac map order,
+   or alternatively, mapped straight 1:1 through previous map if there is no source range that
+   includes the value."
+  (loop :for mapping :in map-order
+        :for lookup-value = location
+          :then (map-reverse-lookup lookup-value mapping almanac)
+        :finally (return lookup-value)))
+
+(defun trace-location-range-through-mappings (location-range map-order almanac)
+  "Given a location range and an almanac, trace location to seed using the mappings.
+   A mapped value can be either mapped from previous mappings in given almanac map order,
+   or alternatively, mapped straight 1:1 through previous map if there is no source range that
+   includes the value."
+  (loop :named outer
+        :for location
+          :from (first location-range)
+            :to (+ (first location-range) (second location-range))
+        :for seed = (trace-location-through-mappings location map-order almanac)
+        
+        :minimizing seed))
+
+(defun location-to-seed-range (location seed-ranges almanac &optional (given-map-order nil))
+  "Given a location, return source seed range the location belongs to,
+   or nil if no seed range applies."
+  (let* ((default-map-order '(:dummy :humidity-to-location :temperature-to-humidity
+                              :light-to-temperature :water-to-light :fertilizer-to-water
+                              :soil-to-fertilizer :seed-to-soil))
+         (map-order (or given-map-order default-map-order))
+         
+         
+         )
+    
+    
+    ))
+
+
+
+;; (defun seed-to-location (first-seed seed-range map-order almanac)
+;;   "Given a seed range and an almanac, trace seeds to locations using the mappings.
+;;    Return lowest location."
+;;   (let ((final-seed (1- (+ first-seed seed-range))))
+;;     (loop :for seed :from first-seed :to final-seed
+;;           :minimize (trace-seed-through-mappings seed map-order almanac))))
+
+;; (defun location-to-seed (first-location location-range map-order almanac)
+;;   "Given a location range and an almanac, trace locations to seeds using the mappings.
+;;    Return lowest location found that maps to a seed, or nil if location range has no
+;;    seed mapped to it."
+;;   (let ((final-location (1- (+ first-location location-range))))
+;;     (loop :for location :from first-location :to final-location
+;;           :when 
+;;           :minimize (trace-seed-through-mappings seed map-order almanac)))
+
+;;   )
+
+(defun get-location-ranges (almanac)
+  "Extract location ranges from almanac. Returns a list ((location range) (location range) ...)"
+  (let ((location-ranges (loop
+                           :for (drs srs rl)
+                             :in (alist-v :humidity-to-location almanac)
+                           :collect (list drs rl))))
+    (sort location-ranges #'<= :key #'car)))
+
+(defun get-seed-ranges (almanac)
+  "Given an almanac, return seed ranges."
+  (loop :for (seed range) :on (alist-v :seeds almanac) :by #'cddr :collect (list seed range)))
 
 (defun solve-part-1 (almanac)
   "Solve part 1 of puzzle."
@@ -114,11 +192,12 @@
 
 (defun solve-part-2 (almanac)
   "Solve part 2 of puzzle."
-  (let* ((seed-ranges (alist-v :seeds almanac))
-         (map-order '(:dummy :seed-to-soil :soil-to-fertilizer :fertilizer-to-water :water-to-light
-                      :light-to-temperature :temperature-to-humidity :humidity-to-location)))
-    (loop :for (first-seed range-length) :on seed-ranges :by #'cddr
-          :minimizing (lowest-location-in-range first-seed range-length map-order almanac))))
+  (let* ((location-ranges (get-location-ranges almanac))
+         (map-order '(:dummy :humidity-to-location :temperature-to-humidity :light-to-temperature
+                      :water-to-light :fertilizer-to-water :soil-to-fertilizer :seed-to-soil)))
+    (loop :for location-range :in location-ranges
+          :for mapped-seed = nil then (trace-location-through-mappings location-range map-order almanac)
+          :when mapped-seed :return mapped-seed)))
 
 (defun main (&optional (mode :full))
   "AoC 2023 day 5 solutions.
